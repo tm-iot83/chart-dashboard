@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChartProps } from '../../data/mockChartData'
 import { mockChartData } from '../../data/mockChartData'
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 declare global {
   interface Window {
@@ -8,11 +10,16 @@ declare global {
   }
 }
 
-function Charts({id}: {id: number}) {
-  const [config, setConfig] = useState<ChartProps>(mockChartData[id]); 
+function Charts({instanceId, widgetId, isEditing}: {instanceId: string, widgetId: number, isEditing: boolean}) {
+  const [config, setConfig] = useState<ChartProps>(mockChartData[widgetId]); 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<any>(null);
   const [chartLoaded, setChartLoaded] = useState(false);
+
+  // Sync config when widgetId changes (e.g. if we add a way to swap widgets)
+  useEffect(() => {
+    setConfig(mockChartData[widgetId]);
+  }, [widgetId]);
 
   // Load Chart.js UMD
   useEffect(() => {
@@ -130,8 +137,29 @@ function Charts({id}: {id: number}) {
     return null;
   }
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({id:instanceId});
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    cursor: isEditing ? 'grab' : 'default',
+  };
+
+  const dragProps = isEditing ? { ...attributes, ...listeners } : {};
+
   return (
-      <div className="card m-4">
+      <div className={`card m-4 ${isEditing ? 'border-dashed border-2 border-blue-400' : ''}`} ref={setNodeRef} style={style} {...dragProps}>
+        {isEditing && (
+          <div className="absolute top-2 right-2 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          </div>
+        )}
         <canvas ref={canvasRef}></canvas>
       </div>
   );

@@ -1,0 +1,19 @@
+@use "./css/classes.scss";
+@use "./css/App.scss";
+
+
+@import url(https://ka-p.fontawesome.com/releases/v6.5.1/css/pro.min.css?token=7777e3ae0a);
+@import url(https://ka-p.fontawesome.com/releases/v6.5.1/css/pro-v4-shims.min.css?token=7777e3ae0a);
+@import url(https://ka-p.fontawesome.com/releases/v6.5.1/css/pro-v4-font-face.min.css?token=7777e3ae0a);
+@import url(https://ka-p.fontawesome.com/releases/v6.5.1/css/pro-v5-font-face.min.css?token=7777e3ae0a);
+
+*{
+    margin: 0;
+    padding: 0;
+}
+
+:root{
+    --primary-color: #1a1a1a;
+    --secondary-color: #ffffff;
+    --accent-color: #6366f1;
+}

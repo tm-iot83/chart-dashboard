@@ -40,7 +40,7 @@ function App() {
 
   return (
     <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex">
+      <div className="flex lato-regular">
         <div className='container-3'>
           <SortableContext items={droppedItems.map(item => item.instanceId)}>
             <WidgetBuilder droppedItems={droppedItems} />

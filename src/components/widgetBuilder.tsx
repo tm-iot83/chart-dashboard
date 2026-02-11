@@ -1,6 +1,9 @@
 import { useDroppable } from "@dnd-kit/core";
 import Charts from "./charts/charts";
 import { useEffect, useState } from "react";
+import ChartForm from "./charts/chartForm";
+import { mockChartData } from "../data/mockChartData";
+import type { ChartProps } from "../data/mockChartData";
 
 interface DroppedItem {
     instanceId: string;
@@ -10,15 +13,42 @@ interface DroppedItem {
 interface WidgetBuilderProps {
     droppedItems: DroppedItem[];
 }
+
+interface ChartConfig {
+    [key: string]: ChartProps;
+}
+
 function WidgetBuilder({ droppedItems }: WidgetBuilderProps) {
     const {setNodeRef} = useDroppable({
     id: 'droppable',
   });
-  const [savedItems,setSavedItems] = useState<DroppedItem[]>([]);  
-  const [isEditing,setIsEditing] = useState(false);
+  const [savedItems, setSavedItems] = useState<DroppedItem[]>([]);
+  const [chartConfigs, setChartConfigs] = useState<ChartConfig>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    const savedItems = localStorage.getItem('droppedItems');
+    const savedConfigs = localStorage.getItem('chartConfigs');
+    
+    if (savedItems) {
+      setSavedItems(JSON.parse(savedItems));
+    }
+    
+    if (savedConfigs) {
+      setChartConfigs(JSON.parse(savedConfigs));
+    }
+  }, []);
+
+  // Auto-save droppedItems to localStorage whenever they change
+  useEffect(() => {
+    if (droppedItems.length > 0) {
+      localStorage.setItem('droppedItems', JSON.stringify(droppedItems));
+      setSavedItems(droppedItems);
+    }
+  }, [droppedItems]);
+
 
   const handleSave = () => {
-    localStorage.setItem('droppedItems', JSON.stringify(droppedItems));
     setIsEditing(false);
   }
 
@@ -26,15 +56,16 @@ function WidgetBuilder({ droppedItems }: WidgetBuilderProps) {
     setIsEditing(false);
   }
 
-  useEffect(() => {
-    const savedItems = localStorage.getItem('droppedItems');
-    if (savedItems) {
-      setSavedItems(JSON.parse(savedItems));
-    }
-  }, []);
+  const handleChartConfigUpdate = (instanceId: string, config: ChartProps) => {
+    setChartConfigs(prev => ({
+      ...prev,
+      [instanceId]: config
+    }));
+  }
 
   const handleClear = () => {
     localStorage.removeItem('droppedItems');
+    localStorage.removeItem('chartConfigs');
     setSavedItems([]);
     window.location.reload();
   }
@@ -62,7 +93,14 @@ function WidgetBuilder({ droppedItems }: WidgetBuilderProps) {
         className="full grid grid-cols-3"
       >
         {savedItems.map((item) => (
-          <Charts key={item.instanceId} instanceId={item.instanceId} widgetId={Number(item.widgetId)} isEditing={isEditing} />
+          <Charts 
+            key={item.instanceId} 
+            instanceId={item.instanceId} 
+            widgetId={Number(item.widgetId)} 
+            isEditing={isEditing}
+            config={chartConfigs[item.instanceId]}
+            onConfigUpdate={handleChartConfigUpdate}
+          />
         ))}
     </div>
     ):(
@@ -77,7 +115,14 @@ function WidgetBuilder({ droppedItems }: WidgetBuilderProps) {
         className="full grid grid-cols-3"
       >
         {droppedItems.map((item) => (
-          <Charts key={item.instanceId} instanceId={item.instanceId} widgetId={Number(item.widgetId)} isEditing={isEditing} />
+          <Charts 
+            key={item.instanceId} 
+            instanceId={item.instanceId} 
+            widgetId={Number(item.widgetId)} 
+            isEditing={isEditing}
+            config={chartConfigs[item.instanceId]}
+            onConfigUpdate={handleChartConfigUpdate}
+          />
         ))}
     </div>
      )

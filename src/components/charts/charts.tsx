@@ -3,6 +3,7 @@ import type { ChartProps } from '../../data/mockChartData'
 import { mockChartData } from '../../data/mockChartData'
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import ChartForm from './chartForm';
 
 declare global {
   interface Window {
@@ -10,16 +11,38 @@ declare global {
   }
 }
 
-function Charts({instanceId, widgetId, isEditing}: {instanceId: string, widgetId: number, isEditing: boolean}) {
-  const [config, setConfig] = useState<ChartProps>(mockChartData[widgetId]); 
+function Charts({
+  instanceId, 
+  widgetId, 
+  isEditing,
+  config: initialConfig,
+  onConfigUpdate
+}: {
+  instanceId: string, 
+  widgetId: number, 
+  isEditing: boolean,
+  config?: ChartProps,
+  onConfigUpdate?: (instanceId: string, config: ChartProps) => void
+}) {
+  const [config, setConfig] = useState<ChartProps>(initialConfig || mockChartData[widgetId]); 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartInstanceRef = useRef<any>(null);
   const [chartLoaded, setChartLoaded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  // Sync config when widgetId changes (e.g. if we add a way to swap widgets)
+  // Sync config when initialConfig prop changes
   useEffect(() => {
-    setConfig(mockChartData[widgetId]);
-  }, [widgetId]);
+    if (initialConfig) {
+      setConfig(initialConfig);
+    }
+  }, [initialConfig]);
+
+  // Sync config when widgetId changes
+  useEffect(() => {
+    if (!initialConfig) {
+      setConfig(mockChartData[widgetId]);
+    }
+  }, [widgetId, initialConfig]);
 
   // Load Chart.js UMD
   useEffect(() => {
@@ -83,6 +106,7 @@ function Charts({instanceId, widgetId, isEditing}: {instanceId: string, widgetId
               borderWidth: 2,
               fill: config.type === "area",
               tension: config.type === "line" || config.type === "area" ? 0.4 : 0,
+              
             },
           ],
         },
@@ -153,15 +177,49 @@ function Charts({instanceId, widgetId, isEditing}: {instanceId: string, widgetId
 
   const dragProps = isEditing ? { ...attributes, ...listeners } : {};
 
+  const handleSave = (updatedConfig: ChartProps) => {
+    setConfig(updatedConfig);
+    onConfigUpdate?.(instanceId, updatedConfig);
+    localStorage.setItem('chartConfigs', JSON.stringify({ ...JSON.parse(localStorage.getItem('chartConfigs') || '{}'), [instanceId]: updatedConfig }));
+    setShowForm(false);
+  };
+
   return (
+    <>
       <div className={`card m-4 ${isEditing ? 'border-dashed border-2 border-blue-400' : ''}`} ref={setNodeRef} style={style} {...dragProps}>
+          <div className="flex justify-between">
         {isEditing && (
-          <div className="absolute top-2 right-2 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+          )}
+        <i 
+          className="fa-solid fa-ellipsis-stroke-vertical cursor-pointer" 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowForm(true);
+          }}
+        ></i>
           </div>
-        )}
         <canvas ref={canvasRef}></canvas>
       </div>
+      {showForm && (
+        <div className="sidebar-overlay" onClick={() => setShowForm(false)}>
+          <div className="sidebar" onClick={(e) => e.stopPropagation()}>
+            <div className="sidebar-header">
+              <h2 className="sidebar-title">Edit Chart Properties</h2>
+              <button 
+                onClick={() => setShowForm(false)}
+                className="sidebar-close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="sidebar-content">
+              <ChartForm config={config} onSave={handleSave} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
